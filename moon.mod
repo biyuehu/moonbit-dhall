@@ -24,3 +24,5 @@ keywords = [ ]
 preferred_target = "wasm"
 
 description = ""
+
+warnings = "-implicit_impl_as_method"

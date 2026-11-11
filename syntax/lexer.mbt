@@ -18,15 +18,6 @@ fn Lexer::char_at(self : Lexer, index : Int32) -> Char {
 }
 
 ///|
-fn Lexer::peek(self : Lexer) -> Char? {
-  if self.pos >= self.len {
-    None
-  } else {
-    Some(self.char_at(self.pos))
-  }
-}
-
-///|
 fn Lexer::peek_at(self : Lexer, offset : Int32) -> Char? {
   let idx = self.pos + offset
   if idx >= self.len || idx < 0 {
