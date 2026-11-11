@@ -1,0 +1,5 @@
+// import {
+//   "biyuehu/moonbit-dhall" @lib,
+// }
+
+pkgtype(kind: "executable")
