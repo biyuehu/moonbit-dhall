@@ -1,0 +1,3 @@
+import {
+  "biyuehu/moonbit-dhall/syntax",
+}

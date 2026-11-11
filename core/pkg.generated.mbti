@@ -1,0 +1,23 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "biyuehu/moonbit-dhall/core"
+
+import {
+  "biyuehu/moonbit-dhall/syntax",
+}
+
+// Values
+pub fn alpha_eq(@syntax.Expr, @syntax.Expr) -> Bool
+
+pub fn eval(@syntax.Expr) -> @syntax.Expr
+
+pub fn shift(Int32, String, Int32, @syntax.Expr) -> @syntax.Expr
+
+pub fn subst(String, Int32, @syntax.Expr, @syntax.Expr) -> @syntax.Expr
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
