@@ -1,10 +1,20 @@
 ///|
-/// Sorts record key-value pairs alphabetically by label
+/// Sorts record key-value pairs lexicographically by label
 fn sort_fields(
   fields : Array[(String, @syntax.Expr)],
 ) -> Array[(String, @syntax.Expr)] {
   let arr = fields.copy()
-  arr.sort_by(fn(a, b) { a.0.compare(b.0) })
+  let mut i = 1
+  while i < arr.length() {
+    let key = arr[i]
+    let mut j = i - 1
+    while j >= 0 && @syntax.lexical_compare(arr[j].0, key.0) > 0 {
+      arr[j + 1] = arr[j]
+      j = j - 1
+    }
+    arr[j + 1] = key
+    i = i + 1
+  }
   arr
 }
 
@@ -164,7 +174,17 @@ pub fn eval(expr : @syntax.Expr) -> @syntax.Expr {
         }
         (kv.0, ty_norm)
       })
-      alts_norm.sort_by(fn(a, b) { a.0.compare(b.0) })
+      let mut i = 1
+      while i < alts_norm.length() {
+        let key = alts_norm[i]
+        let mut j = i - 1
+        while j >= 0 && @syntax.lexical_compare(alts_norm[j].0, key.0) > 0 {
+          alts_norm[j + 1] = alts_norm[j]
+          j = j - 1
+        }
+        alts_norm[j + 1] = key
+        i = i + 1
+      }
       @syntax.Expr::UnionType(alts_norm)
     }
     @syntax.Expr::Merge(handlers, union, t) => {

@@ -137,6 +137,30 @@ pub(all) enum Expr {
 }
 
 ///|
+/// True lexicographical comparison (character by character) as required by Dhall standard
+pub fn lexical_compare(a : String, b : String) -> Int32 {
+  let len_a = a.length()
+  let len_b = b.length()
+  let min_len = if len_a < len_b { len_a } else { len_b }
+  let mut i = 0
+  while i < min_len {
+    let ca = a[i]
+    let cb = b[i]
+    if ca != cb {
+      return if ca < cb { -1 } else { 1 }
+    }
+    i = i + 1
+  }
+  if len_a < len_b {
+    -1
+  } else if len_a > len_b {
+    1
+  } else {
+    0
+  }
+}
+
+///|
 /// Helper to construct arrow type `A -> B` which is shorthand for `Pi("_", A, B)`
 pub fn Expr::arrow(domain : Expr, codomain : Expr) -> Expr {
   Expr::Pi("_", domain, codomain)

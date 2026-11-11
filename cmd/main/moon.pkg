@@ -1,5 +1,6 @@
-// import {
-//   "biyuehu/moonbit-dhall" @lib,
-// }
+import {
+  "biyuehu/moonbit-dhall" @lib,
+  "biyuehu/moonbit-dhall/syntax",
+}
 
 pkgtype(kind: "executable")

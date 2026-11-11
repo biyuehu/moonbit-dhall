@@ -1,7 +1,19 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "biyuehu/moonbit-dhall"
 
+import {
+  "biyuehu/moonbit-dhall/syntax",
+  "moonbitlang/core/json",
+}
+
 // Values
+pub fn alpha_eq(@syntax.Expr, @syntax.Expr) -> Bool
+
+pub fn eval(@syntax.Expr) -> @syntax.Expr
+
+pub fn expr_to_json(@syntax.Expr) -> Result[@json.Json, String]
+
+pub fn expr_to_json_canonical(@syntax.Expr) -> Result[String, String]
 
 // Errors
 
