@@ -1,0 +1,115 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "biyuehu/moonbit-dhall/syntax"
+
+import {
+  "moonbitlang/core/bigint",
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+#derive(Eq, @debug.Debug)
+pub(all) enum BinOp {
+  BoolOr
+  BoolAnd
+  BoolEQ
+  BoolNE
+  NaturalPlus
+  NaturalTimes
+  TextAppend
+  ListAppend
+  CombineRecord
+  CombineRecordType
+  Prefer
+  Equivalent
+}
+pub fn BinOp::to_string(Self) -> String
+
+#derive(Eq, @debug.Debug)
+pub(all) enum Builtin {
+  Bool
+  Natural
+  Integer
+  Double
+  Text
+  List
+  Optional
+  None
+  NaturalFold
+  NaturalBuild
+  NaturalIsZero
+  NaturalEven
+  NaturalOdd
+  NaturalToInteger
+  NaturalShow
+  NaturalSubtract
+  IntegerShow
+  IntegerToDouble
+  IntegerNegate
+  IntegerClamp
+  DoubleShow
+  TextShow
+  TextReplace
+  ListBuild
+  ListFold
+  ListLength
+  ListHead
+  ListLast
+  ListIndexed
+  ListReverse
+}
+pub fn Builtin::to_string(Self) -> String
+
+#derive(Eq, @debug.Debug)
+pub(all) enum Const {
+  Type
+  Kind
+  Sort
+}
+pub fn Const::to_string(Self) -> String
+
+#derive(Eq, @debug.Debug)
+pub(all) enum Expr {
+  Const(Const)
+  Builtin(Builtin)
+  Var(String, Int32)
+  Lam(String, Expr, Expr)
+  Pi(String, Expr, Expr)
+  App(Expr, Expr)
+  Let(String, Expr?, Expr, Expr)
+  Annot(Expr, Expr)
+  BoolLit(Bool)
+  BoolIf(Expr, Expr, Expr)
+  NaturalLit(@bigint.BigInt)
+  IntegerLit(@bigint.BigInt)
+  DoubleLit(Double)
+  TextLit(Array[TextChunk])
+  ListLit(Expr?, Array[Expr])
+  Some(Expr)
+  RecordLit(Array[(String, Expr)])
+  RecordType(Array[(String, Expr)])
+  Field(Expr, String)
+  Project(Expr, Array[String])
+  ProjectByType(Expr, Expr)
+  UnionType(Array[(String, Expr?)])
+  Merge(Expr, Expr, Expr?)
+  ToMap(Expr, Expr?)
+  BinOp(BinOp, Expr, Expr)
+  Assert(Expr)
+}
+pub fn Expr::arrow(Self, Self) -> Self
+pub fn Expr::text(String) -> Self
+pub fn Expr::to_string(Self) -> String
+
+#derive(Eq, @debug.Debug)
+pub(all) enum TextChunk {
+  Lit(String)
+  Expr(Expr)
+}
+
+// Type aliases
+
+// Traits
