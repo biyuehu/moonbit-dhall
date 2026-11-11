@@ -11,9 +11,15 @@ pub fn alpha_eq(@syntax.Expr, @syntax.Expr) -> Bool
 
 pub fn eval(@syntax.Expr) -> @syntax.Expr
 
+pub fn evaluate_str(String) -> Result[@syntax.Expr, String]
+
 pub fn expr_to_json(@syntax.Expr) -> Result[@json.Json, String]
 
 pub fn expr_to_json_canonical(@syntax.Expr) -> Result[String, String]
+
+pub fn parse(String) -> Result[@syntax.Expr, String]
+
+pub fn to_json_str(String) -> Result[String, String]
 
 // Errors
 

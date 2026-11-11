@@ -9,7 +9,14 @@ import {
 // Values
 pub fn lexical_compare(String, String) -> Int32
 
+pub fn parse(String) -> Result[Expr, String]
+
 // Errors
+#derive(Eq, @debug.Debug)
+pub(all) suberror ParseError {
+  Message(String)
+}
+pub impl Show for ParseError
 
 // Types and methods
 #derive(Eq, @debug.Debug)
@@ -105,10 +112,75 @@ pub fn Expr::arrow(Self, Self) -> Self
 pub fn Expr::text(String) -> Self
 pub fn Expr::to_string(Self) -> String
 
+pub struct Lexer {
+  src : String
+  len : Int32
+  mut pos : Int32
+}
+pub fn Lexer::new(String) -> Self
+pub fn Lexer::next_token(Self) -> Token raise ParseError
+
+pub struct Parser {
+  lexer : Lexer
+  mut current : Token
+}
+pub fn Parser::new(String) -> Self raise ParseError
+pub fn Parser::parse_expr(Self) -> Expr raise ParseError
+
 #derive(Eq, @debug.Debug)
 pub(all) enum TextChunk {
   Lit(String)
   Expr(Expr)
+}
+
+#derive(Eq, @debug.Debug)
+pub(all) enum Token {
+  BoolLit(Bool)
+  NaturalLit(@bigint.BigInt)
+  IntegerLit(@bigint.BigInt)
+  DoubleLit(Double)
+  TextLit(String)
+  Ident(String)
+  Const(Const)
+  Builtin(Builtin)
+  KwLet
+  KwIn
+  KwIf
+  KwThen
+  KwElse
+  KwForall
+  KwAssert
+  KwMerge
+  KwToMap
+  KwSome
+  LParen
+  RParen
+  LBrace
+  RBrace
+  LBracket
+  RBracket
+  LAngle
+  RAngle
+  Colon
+  Comma
+  Dot
+  Equal
+  Backslash
+  Arrow
+  At
+  RecordEmpty
+  OpPlus
+  OpTimes
+  OpAnd
+  OpOr
+  OpEQ
+  OpNE
+  OpTextAppend
+  OpListAppend
+  OpPrefer
+  OpCombineRecord
+  OpEquivalent
+  EOF
 }
 
 // Type aliases

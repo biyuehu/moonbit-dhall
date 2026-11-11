@@ -161,6 +161,20 @@ pub fn lexical_compare(a : String, b : String) -> Int32 {
 }
 
 ///|
+/// Parse errors encountered during lexing or parsing
+#derive(Eq, Debug)
+pub(all) suberror ParseError {
+  Message(String)
+}
+
+///|
+pub impl Show for ParseError with fn output(self, logger) {
+  match self {
+    Message(msg) => logger.write_string(msg)
+  }
+}
+
+///|
 /// Helper to construct arrow type `A -> B` which is shorthand for `Pi("_", A, B)`
 pub fn Expr::arrow(domain : Expr, codomain : Expr) -> Expr {
   Expr::Pi("_", domain, codomain)
