@@ -204,6 +204,49 @@ pub fn eval(expr : @syntax.Expr) -> @syntax.Expr {
           }
           @syntax.Expr::Merge(h_norm, u_norm, t_norm)
         }
+        // merge { None = default, ... } (None _) or None
+        (
+          @syntax.Expr::RecordLit(fields),
+          @syntax.Expr::Builtin(@syntax.Builtin::None),
+        )
+        | (
+          @syntax.Expr::RecordLit(fields),
+          @syntax.Expr::App(@syntax.Expr::Builtin(@syntax.Builtin::None), _),
+        ) => {
+          for kv in fields {
+            if kv.0 == "None" {
+              return eval(kv.1)
+            }
+          }
+          @syntax.Expr::Merge(h_norm, u_norm, t_norm)
+        }
+        // merge handlers (< Left : Natural | Right : Bool >.Left 5)
+        (
+          @syntax.Expr::RecordLit(fields),
+          @syntax.Expr::App(
+            @syntax.Expr::Field(@syntax.Expr::UnionType(_), tag),
+            v
+          ),
+        ) => {
+          for kv in fields {
+            if kv.0 == tag {
+              return eval(@syntax.Expr::App(kv.1, v))
+            }
+          }
+          @syntax.Expr::Merge(h_norm, u_norm, t_norm)
+        }
+        // merge handlers (< Red | Green | Blue >.Red)
+        (
+          @syntax.Expr::RecordLit(fields),
+          @syntax.Expr::Field(@syntax.Expr::UnionType(_), tag),
+        ) => {
+          for kv in fields {
+            if kv.0 == tag {
+              return eval(kv.1)
+            }
+          }
+          @syntax.Expr::Merge(h_norm, u_norm, t_norm)
+        }
         _ => @syntax.Expr::Merge(h_norm, u_norm, t_norm)
       }
     }
@@ -422,6 +465,24 @@ fn reduce_app(f : @syntax.Expr, arg : @syntax.Expr) -> @syntax.Expr {
             @syntax.Expr::NaturalLit(n) => @syntax.Expr::IntegerLit(n)
             _ => @syntax.Expr::App(f, arg)
           }
+        @syntax.Builtin::NaturalBuild => {
+          let succ = @syntax.Expr::Lam(
+            "n",
+            @syntax.Expr::Builtin(@syntax.Builtin::Natural),
+            @syntax.Expr::BinOp(
+              @syntax.BinOp::NaturalPlus,
+              @syntax.Expr::Var("n", 0),
+              @syntax.Expr::NaturalLit(1),
+            ),
+          )
+          let app1 = @syntax.Expr::App(
+            arg,
+            @syntax.Expr::Builtin(@syntax.Builtin::Natural),
+          )
+          let app2 = @syntax.Expr::App(app1, succ)
+          let app3 = @syntax.Expr::App(app2, @syntax.Expr::NaturalLit(0))
+          eval(app3)
+        }
         @syntax.Builtin::NaturalShow =>
           match arg {
             @syntax.Expr::NaturalLit(n) => @syntax.Expr::text(n.to_string())
@@ -530,6 +591,50 @@ fn reduce_app(f : @syntax.Expr, arg : @syntax.Expr) -> @syntax.Expr {
               }
             _ => @syntax.Expr::App(f, arg)
           }
+        // List/indexed : forall (a : Type) -> List a -> List { index : Natural, value : a }
+        @syntax.Builtin::ListIndexed =>
+          match arg {
+            @syntax.Expr::ListLit(_, items) => {
+              let res : Array[@syntax.Expr] = []
+              let mut i = BigInt::from_int(0)
+              for item in items {
+                res.push(
+                  @syntax.Expr::RecordLit([
+                    ("index", @syntax.Expr::NaturalLit(i)),
+                    ("value", item),
+                  ]),
+                )
+                i = i + 1
+              }
+              @syntax.Expr::ListLit(None, res)
+            }
+            _ => @syntax.Expr::App(f, arg)
+          }
+        // List/build : forall (a : Type) -> (forall (list : Type) -> (a -> list -> list) -> list -> list) -> List a
+        @syntax.Builtin::ListBuild => {
+          let ty_list_a = @syntax.Expr::App(
+            @syntax.Expr::Builtin(@syntax.Builtin::List),
+            arg1,
+          )
+          let cons = @syntax.Expr::Lam(
+            "x",
+            arg1,
+            @syntax.Expr::Lam(
+              "xs",
+              ty_list_a,
+              @syntax.Expr::BinOp(
+                @syntax.BinOp::ListAppend,
+                @syntax.Expr::ListLit(None, [@syntax.Expr::Var("x", 0)]),
+                @syntax.Expr::Var("xs", 0),
+              ),
+            ),
+          )
+          let nil = @syntax.Expr::ListLit(Some(arg1), [])
+          let app1 = @syntax.Expr::App(arg, ty_list_a)
+          let app2 = @syntax.Expr::App(app1, cons)
+          let app3 = @syntax.Expr::App(app2, nil)
+          eval(app3)
+        }
         _ => @syntax.Expr::App(f, arg)
       }
 
@@ -551,6 +656,35 @@ fn reduce_app(f : @syntax.Expr, arg : @syntax.Expr) -> @syntax.Expr {
           while i < count {
             res = eval(@syntax.Expr::App(succ, res))
             i = i + 1
+          }
+          res
+        }
+        _ => @syntax.Expr::App(f, arg)
+      }
+
+    // 5-argument ListFold: List/fold a xs list cons nil
+    @syntax.Expr::App(
+      @syntax.Expr::App(
+        @syntax.Expr::App(
+          @syntax.Expr::App(
+            @syntax.Expr::Builtin(@syntax.Builtin::ListFold),
+            _a
+          ),
+          xs
+        ),
+        _list
+      ),
+      cons
+    ) =>
+      match xs {
+        @syntax.Expr::ListLit(_, items) => {
+          let mut res = arg // nil
+          let mut i = items.length() - 1
+          while i >= 0 {
+            res = eval(
+              @syntax.Expr::App(@syntax.Expr::App(cons, items[i]), res),
+            )
+            i = i - 1
           }
           res
         }

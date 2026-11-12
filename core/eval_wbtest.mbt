@@ -132,3 +132,95 @@ test "eval list operations" {
   ])
   assert_eq(eval(rev_call), expected_rev)
 }
+
+///|
+test "eval list indexed" {
+  let list = @syntax.Expr::ListLit(None, [
+    @syntax.Expr::text("a"),
+    @syntax.Expr::text("b"),
+  ])
+  let indexed_fn = @syntax.Expr::Builtin(@syntax.Builtin::ListIndexed)
+  let call = @syntax.Expr::App(
+    @syntax.Expr::App(indexed_fn, @syntax.Expr::Builtin(@syntax.Builtin::Text)),
+    list,
+  )
+  let expected = @syntax.Expr::ListLit(None, [
+    @syntax.Expr::RecordLit([
+      ("index", @syntax.Expr::NaturalLit(0)),
+      ("value", @syntax.Expr::text("a")),
+    ]),
+    @syntax.Expr::RecordLit([
+      ("index", @syntax.Expr::NaturalLit(1)),
+      ("value", @syntax.Expr::text("b")),
+    ]),
+  ])
+  assert_eq(eval(call), expected)
+}
+
+///|
+test "eval natural build" {
+  // Natural/build (\(natural : Type) -> \(succ : natural -> natural) -> \(zero : natural) -> succ (succ zero)) => 2
+  let build_fn = @syntax.Expr::Builtin(@syntax.Builtin::NaturalBuild)
+  let builder = @syntax.Expr::Lam(
+    "natural",
+    @syntax.Expr::Const(@syntax.Const::Type),
+    @syntax.Expr::Lam(
+      "succ",
+      @syntax.Expr::arrow(
+        @syntax.Expr::Var("natural", 0),
+        @syntax.Expr::Var("natural", 0),
+      ),
+      @syntax.Expr::Lam(
+        "zero",
+        @syntax.Expr::Var("natural", 0),
+        @syntax.Expr::App(
+          @syntax.Expr::Var("succ", 0),
+          @syntax.Expr::App(
+            @syntax.Expr::Var("succ", 0),
+            @syntax.Expr::Var("zero", 0),
+          ),
+        ),
+      ),
+    ),
+  )
+  assert_eq(
+    eval(@syntax.Expr::App(build_fn, builder)),
+    @syntax.Expr::NaturalLit(2),
+  )
+}
+
+///|
+test "eval merge custom union" {
+  let union_ty = @syntax.Expr::UnionType([
+    ("Left", Some(@syntax.Expr::Builtin(@syntax.Builtin::Natural))),
+    ("Right", Some(@syntax.Expr::Builtin(@syntax.Builtin::Bool))),
+  ])
+  let handlers = @syntax.Expr::RecordLit([
+    (
+      "Left",
+      @syntax.Expr::Lam(
+        "x",
+        @syntax.Expr::Builtin(@syntax.Builtin::Natural),
+        @syntax.Expr::BinOp(
+          @syntax.BinOp::NaturalPlus,
+          @syntax.Expr::Var("x", 0),
+          @syntax.Expr::NaturalLit(10),
+        ),
+      ),
+    ),
+    (
+      "Right",
+      @syntax.Expr::Lam(
+        "b",
+        @syntax.Expr::Builtin(@syntax.Builtin::Bool),
+        @syntax.Expr::NaturalLit(0),
+      ),
+    ),
+  ])
+  let variant = @syntax.Expr::App(
+    @syntax.Expr::Field(union_ty, "Left"),
+    @syntax.Expr::NaturalLit(5),
+  )
+  let merge_expr = @syntax.Expr::Merge(handlers, variant, None)
+  assert_eq(eval(merge_expr), @syntax.Expr::NaturalLit(15))
+}
