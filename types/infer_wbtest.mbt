@@ -100,3 +100,23 @@ test "type error on mismatched types" {
   )
   assert_true(type_of(bad_if) is Err(_))
 }
+
+///|
+test "type inference of union constructor and merge" {
+  let union_ty = @syntax.Expr::UnionType([
+    ("Left", Some(@syntax.Expr::Builtin(@syntax.Builtin::Natural))),
+    ("Right", Some(@syntax.Expr::Builtin(@syntax.Builtin::Bool))),
+  ])
+  // < Left : Natural | Right : Bool >.Left : Natural -> < Left : Natural | Right : Bool >
+  let ctor = @syntax.Expr::Field(union_ty, "Left")
+  let expected_ctor_ty = @syntax.Expr::Pi(
+    "_",
+    @syntax.Expr::Builtin(@syntax.Builtin::Natural),
+    union_ty,
+  )
+  assert_eq(type_of(ctor), Ok(expected_ctor_ty))
+
+  // Variant: < Left : Natural | Right : Bool >.Left 5 : < Left : Natural | Right : Bool >
+  let variant = @syntax.Expr::App(ctor, @syntax.Expr::NaturalLit(5))
+  assert_eq(type_of(variant), Ok(union_ty))
+}

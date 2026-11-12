@@ -456,21 +456,8 @@ pub fn type_with(
 
     // Field access: r.k
     @syntax.Expr::Field(target, field_name) => {
-      let target_ty = @core.eval(type_with(ctx, target))
-      match target_ty {
-        @syntax.Expr::RecordType(fields) => {
-          let mut found : @syntax.Expr? = None
-          for kv in fields {
-            if kv.0 == field_name {
-              found = Some(kv.1)
-              break
-            }
-          }
-          match found {
-            Some(ty) => ty
-            None => raise Message("Record does not have field: " + field_name)
-          }
-        }
+      let target_norm = @core.eval(target)
+      match target_norm {
         @syntax.Expr::UnionType(alts) => {
           let mut found : @syntax.Expr?? = None
           for kv in alts {
@@ -482,14 +469,33 @@ pub fn type_with(
           match found {
             Some(opt_inner_ty) =>
               match opt_inner_ty {
-                Some(inner_ty) => arrow(inner_ty, target_ty)
-                None => target_ty
+                Some(inner_ty) => arrow(inner_ty, target_norm)
+                None => target_norm
               }
             None =>
               raise Message("Union does not have constructor: " + field_name)
           }
         }
-        _ => raise Message("Field access on non-record/non-union target")
+        _ => {
+          let target_ty = @core.eval(type_with(ctx, target))
+          match target_ty {
+            @syntax.Expr::RecordType(fields) => {
+              let mut found : @syntax.Expr? = None
+              for kv in fields {
+                if kv.0 == field_name {
+                  found = Some(kv.1)
+                  break
+                }
+              }
+              match found {
+                Some(ty) => ty
+                None =>
+                  raise Message("Record does not have field: " + field_name)
+              }
+            }
+            _ => raise Message("Field access on non-record target")
+          }
+        }
       }
     }
 
