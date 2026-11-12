@@ -1,5 +1,6 @@
 import {
   "biyuehu/moonbit-dhall/syntax",
   "biyuehu/moonbit-dhall/core",
+  "biyuehu/moonbit-dhall/types",
   "biyuehu/moonbit-dhall/export_json",
 }

@@ -41,6 +41,21 @@ pub fn to_json_str(src : String) -> Result[String, String] {
 }
 
 ///|
+/// Infers the type of a Dhall expression in the empty context
+pub fn type_of(expr : @syntax.Expr) -> Result[@syntax.Expr, String] {
+  @types.type_of(expr)
+}
+
+///|
+/// Parses a Dhall source string and infers its type
+pub fn type_check_str(src : String) -> Result[@syntax.Expr, String] {
+  match @syntax.parse(src) {
+    Ok(expr) => @types.type_of(expr)
+    Err(e) => Err(e)
+  }
+}
+
+///|
 /// Checks if two Dhall expressions are α-equivalent
 pub fn alpha_eq(a : @syntax.Expr, b : @syntax.Expr) -> Bool {
   @core.alpha_eq(a, b)

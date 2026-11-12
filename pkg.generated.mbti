@@ -21,6 +21,10 @@ pub fn parse(String) -> Result[@syntax.Expr, String]
 
 pub fn to_json_str(String) -> Result[String, String]
 
+pub fn type_check_str(String) -> Result[@syntax.Expr, String]
+
+pub fn type_of(@syntax.Expr) -> Result[@syntax.Expr, String]
+
 // Errors
 
 // Types and methods

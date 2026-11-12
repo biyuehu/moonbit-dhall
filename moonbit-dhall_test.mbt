@@ -29,3 +29,14 @@ test "end-to-end record merge" {
   let src = "{ a = 1, b = 2 } // { b = 99, c = 3 }"
   assert_eq(@moonbit-dhall.to_json_str(src), Ok("{\"a\":1,\"b\":99,\"c\":3}"))
 }
+
+///|
+test "end-to-end type check" {
+  let src = "\\(x : Natural) -> x + 1"
+  let ty = @moonbit-dhall.type_check_str(src)
+  assert_true(ty is Ok(_))
+
+  let bad_src = "\\(x : Natural) -> x + True"
+  let bad_ty = @moonbit-dhall.type_check_str(bad_src)
+  assert_true(bad_ty is Err(_))
+}
