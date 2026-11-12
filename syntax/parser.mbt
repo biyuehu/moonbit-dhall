@@ -29,6 +29,35 @@ fn Parser::expect(self : Parser, expected : Token) -> Unit raise ParseError {
 }
 
 ///|
+
+///|
+fn Parser::parse_label(self : Parser) -> String raise ParseError {
+  match self.current {
+    Token::Ident(name) => {
+      self.advance()
+      name
+    }
+    Token::TextLit(s) => {
+      self.advance()
+      s
+    }
+    Token::KwSome => {
+      self.advance()
+      "Some"
+    }
+    Token::Builtin(b) => {
+      self.advance()
+      b.to_string()
+    }
+    Token::Const(c) => {
+      self.advance()
+      c.to_string()
+    }
+    _ => raise Message("Expected label name")
+  }
+}
+
+///|
 fn Parser::parse_atom(self : Parser) -> Expr raise ParseError {
   match self.current {
     Token::BoolLit(b) => {
@@ -95,52 +124,37 @@ fn Parser::parse_atom(self : Parser) -> Expr raise ParseError {
         self.advance()
         return Expr::RecordType([])
       }
-      match self.current {
-        Token::Ident(key) => {
+      let key = self.parse_label()
+      if self.current == Token::Equal {
+        // Record literal: { key = val, ... }
+        self.advance()
+        let val = self.parse_expr()
+        let fields : Array[(String, Expr)] = [(key, val)]
+        while self.current == Token::Comma {
           self.advance()
-          if self.current == Token::Equal {
-            // Record literal: { key = val, ... }
-            self.advance()
-            let val = self.parse_expr()
-            let fields : Array[(String, Expr)] = [(key, val)]
-            while self.current == Token::Comma {
-              self.advance()
-              match self.current {
-                Token::Ident(k) => {
-                  self.advance()
-                  self.expect(Token::Equal)
-                  let v = self.parse_expr()
-                  fields.push((k, v))
-                }
-                _ => raise Message("Expected record key after comma")
-              }
-            }
-            self.expect(Token::RBrace)
-            Expr::RecordLit(fields)
-          } else if self.current == Token::Colon {
-            // Record type: { key : Type, ... }
-            self.advance()
-            let ty = self.parse_expr()
-            let fields : Array[(String, Expr)] = [(key, ty)]
-            while self.current == Token::Comma {
-              self.advance()
-              match self.current {
-                Token::Ident(k) => {
-                  self.advance()
-                  self.expect(Token::Colon)
-                  let t = self.parse_expr()
-                  fields.push((k, t))
-                }
-                _ => raise Message("Expected field name after comma")
-              }
-            }
-            self.expect(Token::RBrace)
-            Expr::RecordType(fields)
-          } else {
-            raise Message("Expected '=' or ':' after record field key")
-          }
+          let k = self.parse_label()
+          self.expect(Token::Equal)
+          let v = self.parse_expr()
+          fields.push((k, v))
         }
-        _ => raise Message("Expected record field name in { ... }")
+        self.expect(Token::RBrace)
+        Expr::RecordLit(fields)
+      } else if self.current == Token::Colon {
+        // Record type: { key : Type, ... }
+        self.advance()
+        let ty = self.parse_expr()
+        let fields : Array[(String, Expr)] = [(key, ty)]
+        while self.current == Token::Comma {
+          self.advance()
+          let k = self.parse_label()
+          self.expect(Token::Colon)
+          let t = self.parse_expr()
+          fields.push((k, t))
+        }
+        self.expect(Token::RBrace)
+        Expr::RecordType(fields)
+      } else {
+        raise Message("Expected '=' or ':' after record field key")
       }
     }
     Token::LBracket => {
@@ -167,19 +181,14 @@ fn Parser::parse_atom(self : Parser) -> Expr raise ParseError {
       }
       let alts : Array[(String, Expr?)] = []
       while true {
-        match self.current {
-          Token::Ident(name) => {
-            self.advance()
-            let ty : Expr? = if self.current == Token::Colon {
-              self.advance()
-              Some(self.parse_expr())
-            } else {
-              None
-            }
-            alts.push((name, ty))
-          }
-          _ => raise Message("Expected union alternative name")
+        let name = self.parse_label()
+        let ty : Expr? = if self.current == Token::Colon {
+          self.advance()
+          Some(self.parse_expr())
+        } else {
+          None
         }
+        alts.push((name, ty))
         if self.current == Token::OpOr {
           self.advance()
         } else {
@@ -200,35 +209,21 @@ fn Parser::parse_postfix(self : Parser) -> Expr raise ParseError {
   while true {
     if self.current == Token::Dot {
       self.advance()
-      match self.current {
-        Token::Ident(field) => {
+      if self.current == Token::LBrace {
+        self.advance()
+        let fields : Array[String] = []
+        let f = self.parse_label()
+        fields.push(f)
+        while self.current == Token::Comma {
           self.advance()
-          expr = Expr::Field(expr, field)
+          let next_f = self.parse_label()
+          fields.push(next_f)
         }
-        Token::LBrace => {
-          self.advance()
-          let fields : Array[String] = []
-          match self.current {
-            Token::Ident(f) => {
-              self.advance()
-              fields.push(f)
-              while self.current == Token::Comma {
-                self.advance()
-                match self.current {
-                  Token::Ident(next_f) => {
-                    self.advance()
-                    fields.push(next_f)
-                  }
-                  _ => raise Message("Expected field name in projection")
-                }
-              }
-            }
-            _ => raise Message("Expected field name in projection")
-          }
-          self.expect(Token::RBrace)
-          expr = Expr::Project(expr, fields)
-        }
-        _ => raise Message("Expected field name or '{' after '.'")
+        self.expect(Token::RBrace)
+        expr = Expr::Project(expr, fields)
+      } else {
+        let field = self.parse_label()
+        expr = Expr::Field(expr, field)
       }
     } else {
       break
