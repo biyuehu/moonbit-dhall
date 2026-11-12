@@ -40,3 +40,16 @@ test "end-to-end type check" {
   let bad_ty = @moonbit-dhall.type_check_str(bad_src)
   assert_true(bad_ty is Err(_))
 }
+
+///|
+test "end-to-end merge optional and toMap" {
+  let opt_src = "merge { Some = \\(x : Natural) -> x, None = 0 } (Some 42)"
+  assert_eq(@moonbit-dhall.to_json_str(opt_src), Ok("42"))
+
+  let none_src = "merge { Some = \\(x : Natural) -> x, None = 99 } (None Natural)"
+  assert_eq(@moonbit-dhall.to_json_str(none_src), Ok("99"))
+
+  let to_map_src = "toMap { a = 1, b = 2 }"
+  let expected_json = "[{\"mapKey\":\"a\",\"mapValue\":1},{\"mapKey\":\"b\",\"mapValue\":2}]"
+  assert_eq(@moonbit-dhall.to_json_str(to_map_src), Ok(expected_json))
+}

@@ -38,7 +38,9 @@ pub fn expr_to_json(expr : @syntax.Expr) -> Result[Json, String] {
       Ok(Json(arr))
     }
     @syntax.Expr::Some(inner) => expr_to_json(inner)
-    @syntax.Expr::Builtin(@syntax.Builtin::None) => Ok(Json::null())
+    @syntax.Expr::Builtin(@syntax.Builtin::None)
+    | @syntax.Expr::App(@syntax.Expr::Builtin(@syntax.Builtin::None), _) =>
+      Ok(Json::null())
     @syntax.Expr::RecordLit(fields) => {
       let map : Map[String, Json] = Map([])
       for kv in fields {
@@ -115,7 +117,9 @@ pub fn expr_to_json_canonical(expr : @syntax.Expr) -> Result[String, String] {
       Ok(sb.to_string())
     }
     @syntax.Expr::Some(inner) => expr_to_json_canonical(inner)
-    @syntax.Expr::Builtin(@syntax.Builtin::None) => Ok("null")
+    @syntax.Expr::Builtin(@syntax.Builtin::None)
+    | @syntax.Expr::App(@syntax.Expr::Builtin(@syntax.Builtin::None), _) =>
+      Ok("null")
     @syntax.Expr::RecordLit(fields) => {
       let sb = StringBuilder()
       sb.write_string("{")
