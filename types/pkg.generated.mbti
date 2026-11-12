@@ -1,0 +1,31 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "biyuehu/moonbit-dhall/types"
+
+import {
+  "biyuehu/moonbit-dhall/syntax",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn type_of(@syntax.Expr) -> Result[@syntax.Expr, String]
+
+pub fn type_with(Context, @syntax.Expr) -> @syntax.Expr raise TypeError
+
+// Errors
+#derive(Eq, @debug.Debug)
+pub(all) suberror TypeError {
+  Message(String)
+}
+pub impl Show for TypeError
+
+// Types and methods
+pub struct Context {
+  bindings : Array[(String, @syntax.Expr)]
+}
+pub fn Context::lookup(Self, String, Int32) -> @syntax.Expr?
+pub fn Context::new() -> Self
+pub fn Context::push(Self, String, @syntax.Expr) -> Self
+
+// Type aliases
+
+// Traits
