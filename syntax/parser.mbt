@@ -29,8 +29,6 @@ fn Parser::expect(self : Parser, expected : Token) -> Unit raise ParseError {
 }
 
 ///|
-
-///|
 fn Parser::parse_label(self : Parser) -> String raise ParseError {
   match self.current {
     Token::Ident(name) => {
