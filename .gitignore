@@ -4,3 +4,5 @@ target/
 target
 .mooncakes/
 .moonagent/
+references/
+application.md
