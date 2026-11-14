@@ -56,6 +56,43 @@ fn Parser::parse_label(self : Parser) -> String raise ParseError {
 }
 
 ///|
+
+///|
+fn make_nested_record(path : Array[String], idx : Int32, val : Expr) -> Expr {
+  if idx == path.length() - 1 {
+    val
+  } else {
+    Expr::RecordLit([(path[idx + 1], make_nested_record(path, idx + 1, val))])
+  }
+}
+
+///|
+fn add_record_field(
+  fields : Array[(String, Expr)],
+  path : Array[String],
+  val : Expr,
+) -> Unit {
+  let key = path[0]
+  let field_val = make_nested_record(path, 0, val)
+  let mut merged = false
+  let mut i = 0
+  while i < fields.length() {
+    if fields[i].0 == key {
+      fields[i] = (
+        key,
+        Expr::BinOp(BinOp::CombineRecord, fields[i].1, field_val),
+      )
+      merged = true
+      break
+    }
+    i = i + 1
+  }
+  if merged == false {
+    fields.push((key, field_val))
+  }
+}
+
+///|
 fn Parser::parse_atom(self : Parser) -> Expr raise ParseError {
   match self.current {
     Token::BoolLit(b) => {
@@ -122,18 +159,27 @@ fn Parser::parse_atom(self : Parser) -> Expr raise ParseError {
         self.advance()
         return Expr::RecordType([])
       }
-      let key = self.parse_label()
+      let first_path : Array[String] = [self.parse_label()]
+      while self.current == Token::Dot {
+        self.advance()
+        first_path.push(self.parse_label())
+      }
       if self.current == Token::Equal {
         // Record literal: { key = val, ... }
         self.advance()
         let val = self.parse_expr()
-        let fields : Array[(String, Expr)] = [(key, val)]
+        let fields : Array[(String, Expr)] = []
+        add_record_field(fields, first_path, val)
         while self.current == Token::Comma {
           self.advance()
-          let k = self.parse_label()
+          let path : Array[String] = [self.parse_label()]
+          while self.current == Token::Dot {
+            self.advance()
+            path.push(self.parse_label())
+          }
           self.expect(Token::Equal)
           let v = self.parse_expr()
-          fields.push((k, v))
+          add_record_field(fields, path, v)
         }
         self.expect(Token::RBrace)
         Expr::RecordLit(fields)
@@ -141,7 +187,7 @@ fn Parser::parse_atom(self : Parser) -> Expr raise ParseError {
         // Record type: { key : Type, ... }
         self.advance()
         let ty = self.parse_expr()
-        let fields : Array[(String, Expr)] = [(key, ty)]
+        let fields : Array[(String, Expr)] = [(first_path[0], ty)]
         while self.current == Token::Comma {
           self.advance()
           let k = self.parse_label()
@@ -223,6 +269,13 @@ fn Parser::parse_postfix(self : Parser) -> Expr raise ParseError {
         let field = self.parse_label()
         expr = Expr::Field(expr, field)
       }
+    } else if self.current == Token::ColonColon {
+      self.advance()
+      let right = self.parse_atom()
+      expr = Expr::Annot(
+        Expr::BinOp(BinOp::Prefer, Expr::Field(expr, "default"), right),
+        Expr::Field(expr, "Type"),
+      )
     } else {
       break
     }
@@ -274,7 +327,7 @@ fn op_precedence(tok : Token) -> Int32 {
     Token::OpAnd => 50
     Token::OpTimes => 60
     Token::OpEQ | Token::OpNE => 70
-    Token::OpCombineRecord => 80
+    Token::OpCombineRecord | Token::OpCombineRecordType => 80
     Token::OpPrefer => 90
     _ => 0
   }
@@ -294,6 +347,7 @@ fn tok_to_binop(tok : Token) -> BinOp? {
     Token::OpEQ => Some(BinOp::BoolEQ)
     Token::OpNE => Some(BinOp::BoolNE)
     Token::OpCombineRecord => Some(BinOp::CombineRecord)
+    Token::OpCombineRecordType => Some(BinOp::CombineRecordType)
     Token::OpPrefer => Some(BinOp::Prefer)
     _ => None
   }
@@ -417,6 +471,17 @@ pub fn Parser::parse_expr(self : Parser) -> Expr raise ParseError {
     }
     _ => {
       let mut expr = self.parse_binop(0)
+      while self.current == Token::KwWith {
+        self.advance()
+        let path : Array[String] = [self.parse_label()]
+        while self.current == Token::Dot {
+          self.advance()
+          path.push(self.parse_label())
+        }
+        self.expect(Token::Equal)
+        let val = self.parse_binop(0)
+        expr = Expr::With(expr, path, val)
+      }
       // Check for arrow type: A -> B
       if self.current == Token::Arrow {
         self.advance()

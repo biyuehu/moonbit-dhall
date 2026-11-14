@@ -102,6 +102,7 @@ pub(all) enum Expr {
   Field(Expr, String)
   Project(Expr, Array[String])
   ProjectByType(Expr, Expr)
+  With(Expr, Array[String], Expr)
   UnionType(Array[(String, Expr?)])
   Merge(Expr, Expr, Expr?)
   ToMap(Expr, Expr?)
@@ -153,6 +154,7 @@ pub(all) enum Token {
   KwMerge
   KwToMap
   KwSome
+  KwWith
   LParen
   RParen
   LBrace
@@ -162,6 +164,7 @@ pub(all) enum Token {
   LAngle
   RAngle
   Colon
+  ColonColon
   Comma
   Dot
   Equal
@@ -179,6 +182,7 @@ pub(all) enum Token {
   OpListAppend
   OpPrefer
   OpCombineRecord
+  OpCombineRecordType
   OpEquivalent
   EOF
 }

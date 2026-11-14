@@ -25,6 +25,7 @@ pub(all) enum Token {
   KwMerge
   KwToMap
   KwSome
+  KwWith
 
   // Symbols
   LParen // (
@@ -36,6 +37,7 @@ pub(all) enum Token {
   LAngle // <
   RAngle // >
   Colon // :
+  ColonColon // ::
   Comma // ,
   Dot // .
   Equal // =
@@ -55,6 +57,7 @@ pub(all) enum Token {
   OpListAppend // #
   OpPrefer // //
   OpCombineRecord // /\
+  OpCombineRecordType // //\\
   OpEquivalent // ===
   EOF
 }

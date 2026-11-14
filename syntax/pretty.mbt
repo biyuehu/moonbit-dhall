@@ -255,6 +255,22 @@ pub fn Expr::to_string(self : Expr) -> String {
         None => base
       }
     }
+    Expr::With(target, path, val) => {
+      let sb = StringBuilder()
+      sb.write_string("(")
+      sb.write_string(target.to_string())
+      sb.write_string(" with ")
+      for i, p in path {
+        if i > 0 {
+          sb.write_string(".")
+        }
+        sb.write_string(p)
+      }
+      sb.write_string(" = ")
+      sb.write_string(val.to_string())
+      sb.write_string(")")
+      sb.to_string()
+    }
     Expr::BinOp(op, l, r) =>
       "(" + l.to_string() + " " + op.to_string() + " " + r.to_string() + ")"
     Expr::Assert(expr) => "assert : " + expr.to_string()

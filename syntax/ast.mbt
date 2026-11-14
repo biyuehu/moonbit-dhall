@@ -123,6 +123,7 @@ pub(all) enum Expr {
   Field(Expr, String) // r.field
   Project(Expr, Array[String]) // r.{ a, b }
   ProjectByType(Expr, Expr) // r.(T)
+  With(Expr, Array[String], Expr) // r with a.b = c
 
   // Unions
   UnionType(Array[(String, Expr?)]) // < x : T | y >

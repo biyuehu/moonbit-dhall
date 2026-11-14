@@ -140,6 +140,7 @@ fn Lexer::read_number_or_ident(self : Lexer) -> Token {
     "merge" => Token::KwMerge
     "toMap" => Token::KwToMap
     "Some" => Token::KwSome
+    "with" => Token::KwWith
     "True" => Token::BoolLit(true)
     "False" => Token::BoolLit(false)
     "Type" => Token::Const(Const::Type)
@@ -247,6 +248,10 @@ pub fn Lexer::next_token(self : Lexer) -> Token raise ParseError {
     return Token::RAngle
   }
   if c == ':' {
+    if self.peek_at(1) == Some(':') {
+      self.pos = self.pos + 2
+      return Token::ColonColon
+    }
     self.pos = self.pos + 1
     return Token::Colon
   }
@@ -340,6 +345,10 @@ pub fn Lexer::next_token(self : Lexer) -> Token raise ParseError {
   }
   if c == '/' {
     if self.peek_at(1) == Some('/') {
+      if self.peek_at(2) == Some('\\') && self.peek_at(3) == Some('\\') {
+        self.pos = self.pos + 4
+        return Token::OpCombineRecordType
+      }
       self.pos = self.pos + 2
       return Token::OpPrefer
     }
@@ -347,6 +356,38 @@ pub fn Lexer::next_token(self : Lexer) -> Token raise ParseError {
       self.pos = self.pos + 2
       return Token::OpCombineRecord
     }
+  }
+  if c == '∀' {
+    self.pos = self.pos + 1
+    return Token::KwForall
+  }
+  if c == 'λ' {
+    self.pos = self.pos + 1
+    return Token::Backslash
+  }
+  if c == '→' {
+    self.pos = self.pos + 1
+    return Token::Arrow
+  }
+  if c == '≡' {
+    self.pos = self.pos + 1
+    return Token::OpEquivalent
+  }
+  if c == '∧' {
+    self.pos = self.pos + 1
+    return Token::OpCombineRecord
+  }
+  if c == '⩓' {
+    self.pos = self.pos + 1
+    return Token::OpCombineRecordType
+  }
+  if c == '⫽' {
+    self.pos = self.pos + 1
+    return Token::OpPrefer
+  }
+  if c == '⫹' {
+    self.pos = self.pos + 1
+    return Token::OpTextAppend
   }
   if c == '"' {
     return self.read_string()
