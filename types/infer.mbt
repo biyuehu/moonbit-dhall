@@ -555,6 +555,11 @@ pub fn type_with(
         _ => raise Message("Project by type expression must be a record type")
       }
     }
+    @syntax.Expr::With(target, path, val) => {
+      let target_ty = @core.eval(type_with(ctx, target))
+      let val_ty = type_with(ctx, val)
+      infer_with_type(ctx, target_ty, path, 0, val_ty)
+    }
 
     // Binary operators
     @syntax.Expr::BinOp(op, l, r) => {
@@ -681,8 +686,64 @@ pub fn type_with(
           }
           @syntax.Expr::Const(@syntax.Const::Type)
         }
-        @syntax.BinOp::CombineRecordType =>
-          raise Message("Operator //\\\\ is not yet implemented")
+        @syntax.BinOp::CombineRecordType => {
+          let l_norm = @core.eval(l_ty)
+          let r_norm = @core.eval(r_ty)
+          match (l_norm, r_norm) {
+            (@syntax.Expr::Const(c1), @syntax.Expr::Const(c2)) => {
+              let l_val = @core.eval(l)
+              let r_val = @core.eval(r)
+              match (l_val, r_val) {
+                (@syntax.Expr::RecordType(f1), @syntax.Expr::RecordType(f2)) => {
+                  let res : Array[(String, @syntax.Expr)] = []
+                  for kv in f1 {
+                    res.push(kv)
+                  }
+                  for kv2 in f2 {
+                    let mut merged = false
+                    let mut i = 0
+                    while i < res.length() {
+                      if res[i].0 == kv2.0 {
+                        let combined_t = @syntax.Expr::BinOp(
+                          @syntax.BinOp::CombineRecordType,
+                          res[i].1,
+                          kv2.1,
+                        )
+                        res[i] = (kv2.0, combined_t)
+                        merged = true
+                        break
+                      }
+                      i = i + 1
+                    }
+                    if merged == false {
+                      res.push(kv2)
+                    }
+                  }
+                  let res_type = @syntax.Expr::RecordType(res)
+                  let _ = type_with(ctx, res_type)
+                  let max_c = if c1 == @syntax.Const::Sort ||
+                    c2 == @syntax.Const::Sort {
+                    @syntax.Const::Sort
+                  } else if c1 == @syntax.Const::Kind ||
+                    c2 == @syntax.Const::Kind {
+                    @syntax.Const::Kind
+                  } else {
+                    @syntax.Const::Type
+                  }
+                  @syntax.Expr::Const(max_c)
+                }
+                _ =>
+                  raise Message(
+                    "CombineRecordType (//\\\\) requires record type operands",
+                  )
+              }
+            }
+            _ =>
+              raise Message(
+                "CombineRecordType (//\\\\) operands must be record types",
+              )
+          }
+        }
       }
     }
 
@@ -763,6 +824,52 @@ pub fn type_with(
         _ => raise Message("toMap requires a Record operand")
       }
     }
+  }
+}
+
+///|
+fn infer_with_type(
+  ctx : Context,
+  target_ty : @syntax.Expr,
+  path : Array[String],
+  idx : Int32,
+  val_ty : @syntax.Expr,
+) -> @syntax.Expr raise TypeError {
+  match target_ty {
+    @syntax.Expr::RecordType(fields) => {
+      let k = path[idx]
+      let new_fields : Array[(String, @syntax.Expr)] = []
+      let mut found = false
+      for kv in fields {
+        if kv.0 == k {
+          found = true
+          let new_field_ty = if idx == path.length() - 1 {
+            val_ty
+          } else {
+            infer_with_type(ctx, kv.1, path, idx + 1, val_ty)
+          }
+          new_fields.push((k, new_field_ty))
+        } else {
+          new_fields.push(kv)
+        }
+      }
+      if found == false {
+        let new_field_ty = if idx == path.length() - 1 {
+          val_ty
+        } else {
+          infer_with_type(
+            ctx,
+            @syntax.Expr::RecordType([]),
+            path,
+            idx + 1,
+            val_ty,
+          )
+        }
+        new_fields.push((k, new_field_ty))
+      }
+      @syntax.Expr::RecordType(new_fields)
+    }
+    _ => raise Message("with expression target must be a record")
   }
 }
 

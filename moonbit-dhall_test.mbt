@@ -53,3 +53,55 @@ test "end-to-end merge optional and toMap" {
   let expected_json = "[{\"mapKey\":\"a\",\"mapValue\":1},{\"mapKey\":\"b\",\"mapValue\":2}]"
   assert_eq(@moonbit-dhall.to_json_str(to_map_src), Ok(expected_json))
 }
+
+///|
+test "end-to-end with expression and dotted fields" {
+  // Dotted record literals
+  let dotted = "{ x.y = 1, x.z = 2 }"
+  assert_eq(@moonbit-dhall.to_json_str(dotted), Ok("{\"x\":{\"y\":1,\"z\":2}}"))
+
+  // Chained with
+  let chained = "{ a = 1 } with b = 2 with c = 3"
+  assert_eq(
+    @moonbit-dhall.to_json_str(chained),
+    Ok("{\"a\":1,\"b\":2,\"c\":3}"),
+  )
+
+  // Nested with
+  let nested = "{ a.b = 1 } with a.c = 2"
+  assert_eq(@moonbit-dhall.to_json_str(nested), Ok("{\"a\":{\"b\":1,\"c\":2}}"))
+
+  // Intermediate record creation
+  let create_inter = "{ a = 5 } with b.c = 10"
+  assert_eq(
+    @moonbit-dhall.to_json_str(create_inter),
+    Ok("{\"a\":5,\"b\":{\"c\":10}}"),
+  )
+}
+
+///|
+test "end-to-end record completion and unicode" {
+  // Completion T::r
+  let schema =
+    #|let Config = {
+    #|  Type = { host : Text, port : Natural },
+    #|  default = { host = "127.0.0.1", port = 8080 }
+    #|}
+    #|in Config::{ port = 9000 }
+  assert_eq(
+    @moonbit-dhall.to_json_str(schema),
+    Ok("{\"host\":\"127.0.0.1\",\"port\":9000}"),
+  )
+
+  // Unicode lambda and arrow
+  let unicode_lambda = "λ(x : Natural) → x + 1"
+  let parsed = @moonbit-dhall.parse(unicode_lambda)
+  assert_true(parsed is Ok(_))
+  let ty = @moonbit-dhall.type_check_str(unicode_lambda)
+  assert_true(ty is Ok(_))
+
+  // CombineRecordType //\\
+  let crt = "{ a : Natural } //\\\\ { b : Bool }"
+  let crt_ty = @moonbit-dhall.type_check_str(crt)
+  assert_true(crt_ty is Ok(_))
+}
