@@ -269,8 +269,60 @@ pub fn eval(expr : @syntax.Expr) -> @syntax.Expr {
         _ => @syntax.Expr::ToMap(r_norm, t_norm)
       }
     }
+    @syntax.Expr::With(target, path, val) => {
+      let t_norm = eval(target)
+      let v_norm = eval(val)
+      eval_with(t_norm, path, 0, v_norm)
+    }
     @syntax.Expr::BinOp(op, l, r) => eval_binop(op, eval(l), eval(r))
     @syntax.Expr::Assert(e) => @syntax.Expr::Assert(eval(e))
+  }
+}
+
+///|
+fn eval_with(
+  target : @syntax.Expr,
+  path : Array[String],
+  idx : Int32,
+  val : @syntax.Expr,
+) -> @syntax.Expr {
+  match target {
+    @syntax.Expr::RecordLit(fields) => {
+      let k = path[idx]
+      let new_fields : Array[(String, @syntax.Expr)] = []
+      let mut found = false
+      for kv in fields {
+        if kv.0 == k {
+          found = true
+          let new_val = if idx == path.length() - 1 {
+            val
+          } else {
+            eval_with(kv.1, path, idx + 1, val)
+          }
+          new_fields.push((k, new_val))
+        } else {
+          new_fields.push(kv)
+        }
+      }
+      if found == false {
+        let new_val = if idx == path.length() - 1 {
+          val
+        } else {
+          eval_with(@syntax.Expr::RecordLit([]), path, idx + 1, val)
+        }
+        new_fields.push((k, new_val))
+      }
+      @syntax.Expr::RecordLit(sort_fields(new_fields))
+    }
+    _ => {
+      let rem_path : Array[String] = []
+      let mut i = idx
+      while i < path.length() {
+        rem_path.push(path[i])
+        i = i + 1
+      }
+      @syntax.Expr::With(target, rem_path, val)
+    }
   }
 }
 
@@ -433,6 +485,52 @@ fn eval_binop(
         }
       }
       @syntax.Expr::RecordLit(sort_fields(res))
+    }
+
+    // CombineRecordType (//\\): recursive record type merge
+    (
+      @syntax.BinOp::CombineRecordType,
+      @syntax.Expr::RecordType(left_kvs),
+      @syntax.Expr::RecordType(right_kvs),
+    ) => {
+      let res : Array[(String, @syntax.Expr)] = []
+      for r_kv in right_kvs {
+        let mut merged = false
+        for l_kv in left_kvs {
+          if l_kv.0 == r_kv.0 {
+            res.push(
+              (
+                r_kv.0,
+                eval(
+                  @syntax.Expr::BinOp(
+                    @syntax.BinOp::CombineRecordType,
+                    l_kv.1,
+                    r_kv.1,
+                  ),
+                ),
+              ),
+            )
+            merged = true
+            break
+          }
+        }
+        if merged == false {
+          res.push(r_kv)
+        }
+      }
+      for l_kv in left_kvs {
+        let mut exists = false
+        for r_kv in right_kvs {
+          if r_kv.0 == l_kv.0 {
+            exists = true
+            break
+          }
+        }
+        if exists == false {
+          res.push(l_kv)
+        }
+      }
+      @syntax.Expr::RecordType(sort_fields(res))
     }
     _ => @syntax.Expr::BinOp(op, l, r)
   }

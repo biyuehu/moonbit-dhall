@@ -103,6 +103,12 @@ pub fn shift(
         shift(amount, var_name, min_index, target),
         shift(amount, var_name, min_index, ty),
       )
+    @syntax.Expr::With(target, path, val) =>
+      @syntax.Expr::With(
+        shift(amount, var_name, min_index, target),
+        path,
+        shift(amount, var_name, min_index, val),
+      )
     @syntax.Expr::UnionType(alts) => {
       let new_alts = alts.map(fn(kv) {
         let new_t = match kv.1 {

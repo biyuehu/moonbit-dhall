@@ -112,6 +112,12 @@ pub fn subst(
         subst(var_name, var_index, replacement, target),
         subst(var_name, var_index, replacement, ty),
       )
+    @syntax.Expr::With(target, path, val) =>
+      @syntax.Expr::With(
+        subst(var_name, var_index, replacement, target),
+        path,
+        subst(var_name, var_index, replacement, val),
+      )
     @syntax.Expr::UnionType(alts) => {
       let new_alts = alts.map(fn(kv) {
         let new_t = match kv.1 {
